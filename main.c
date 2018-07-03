@@ -1,5 +1,6 @@
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/kernel/processmgr.h>
+#include <psp2/vshbridge.h>
 #include <psp2/io/fcntl.h>
 #include <psp2/ctrl.h>
 
@@ -14,6 +15,7 @@
 #define printf psvDebugScreenPrintf
 
 #define PUP_PATH "ux0:app/FWUPDATER/PSP2UPDAT.PUP"
+#define SAFE_VER 3.68
 
 int sceSblSsUpdateMgrSetBootMode(int x);
 int vshPowerRequestColdReset(void);
@@ -245,8 +247,23 @@ int main(int argc, char *argv[]) {
   if (p)
     *p = '\0';
 
+  SceKernelFwInfo fwinfo = {0};
+  fwinfo.size = sizeof(SceKernelFwInfo);
+  _vshSblGetSystemSwVersion(&fwinfo);
+
+  printf("Current firmware is %s.\n", fwinfo.versionString);
   printf("PUP firmware %s detected.\n\n", version);
 
+  double pup = atof(version);
+  double cur = atof(fwinfo.versionString);
+
+  if (pup < cur) {
+    printf("WARN: firmware downgrade can cause brick\n\n");
+  } else if (pup > SAFE_VER) {
+    printf("WARN: target version is unsafe for homebrew\n\n");
+  }
+
+  printf("You will lose HENkaku and enso after update\n");
   printf("Are you sure you want to update?\n");
   printf("Press L+R+DOWN+X to update.\n");
   printf("Press O to cancel.\n\n");
